@@ -148,4 +148,6 @@ libs/                                            可选：通用修复 mod jar�
 ## 许可
 
 [LGPL-3.0](LICENSE)（GNU Lesser General Public License v3.0，与 Forestry: Community Edition 一致）。
-完整许可文本见 [`LICENSE`](LICENSE)（包含 LGPL-3.0 及其所引用的 GPL-3.0）。
+
+- [`LICENSE`](LICENSE)：LGPL-3.0 完整文本
+- [`COPYING`](COPYING)：LGPL-3.0 所引用的 GPL-3.0 完整文本
