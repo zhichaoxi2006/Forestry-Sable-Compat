@@ -1,0 +1,37 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "LGPL-3.0"
+
+[[mods]]
+modId = "forestry_sable_compat_gametest"
+version = "0.1.0"
+displayName = "Forestry Sable Compat GameTests"
+description = '''GameTest suite for Forestry: Community Edition x Sable compatibility. Inert unless the gameTestServer run enables this namespace.'''
+
+[[dependencies.forestry_sable_compat_gametest]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1.230,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.forestry_sable_compat_gametest]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,1.21.2)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.forestry_sable_compat_gametest]]
+modId = "forestry"
+type = "required"
+versionRange = "[3.0.0-alpha8,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.forestry_sable_compat_gametest]]
+modId = "sable"
+type = "required"
+versionRange = "[2.0.0,)"
+ordering = "AFTER"
+side = "BOTH"

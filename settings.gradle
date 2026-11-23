@@ -1,0 +1,18 @@
+// `pluginManagement` has to be the first statement in a settings script.
+pluginManagement {
+    repositories {
+        mavenLocal()
+        gradlePluginPortal()
+        maven { url = 'https://maven.neoforged.net/releases' }
+    }
+}
+
+// This machine cannot reach maven.neoforged.net (timeouts), so NeoForge artifacts come from the
+// local Maven-format mirror in ../ForestryCE/build/local-m2 (see `neoforge_local_mirror` in
+// gradle.properties) and everything else is resolved from the Gradle cache / Maven Local.
+// Pass `-Ponline=true` when the network really is needed (e.g. to bump a dependency version).
+if (!gradle.startParameter.projectProperties.containsKey('online')) {
+    gradle.startParameter.offline = true
+}
+
+rootProject.name = 'forestry-sable-compat'

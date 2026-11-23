@@ -1,0 +1,209 @@
+plugins {
+    id 'idea'
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.140'
+}
+
+group = project.mod_group_id
+version = project.mod_version
+base {
+    archivesName = "${project.mod_id}-${project.minecraft_version}"
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(project.java_version as int)
+    }
+    withSourcesJar()
+}
+
+// Minecraft 1.21.1 / NeoForge 21.1.x -------------------------------------------------------------
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        minecraftVersion = project.parchment_minecraft_version
+        mappingsVersion = project.parchment_mappings_version
+    }
+
+    runs {
+        client {
+            client()
+        }
+        server {
+            server()
+            programArgument '--nogui'
+        }
+        // `gradlew runGameTestServer` executes the @GameTestHolder classes of the test mod below.
+        // The tests are completely inert in normal client/server play.
+        gameTestServer {
+            type = "gameTestServer"
+            gameDirectory.set(project.layout.projectDirectory.dir('run/gametest'))
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'forestry_sable_compat_gametest'
+        }
+    }
+
+    mods {
+        forestry_sable_compat {
+            sourceSet sourceSets.main
+        }
+        forestry_sable_compat_gametest {
+            sourceSet sourceSets.test
+        }
+    }
+
+    // `src/test` has no Minecraft/NeoForge on its classpath by default; moddev only wires that into
+    // source sets it is told about.
+    addModdingDependenciesTo sourceSets.test
+}
+
+repositories {
+    // Forestry: CE (alpha9) and the Sable jar are installed into this machine's Maven Local so the
+    // build stays offline; the content filter keeps other groups out of it.
+    mavenLocal {
+        name = 'HostMavenLocal'
+        content {
+            includeGroup project.forestry_group
+            includeGroup 'dev.ryanhcode.sable'
+            includeGroup 'dev.ryanhcode.sable-companion'
+        }
+    }
+    maven {
+        name = 'RyanHCode'
+        url = 'https://maven.ryanhcode.dev/releases'
+        content {
+            includeGroup 'dev.ryanhcode.sable'
+            includeGroup 'dev.ryanhcode.sable-companion'
+        }
+    }
+    maven {
+        name = 'BlameJared'
+        url = 'https://maven.blamejared.com/'
+        content {
+            includeGroup 'vazkii.patchouli'
+        }
+    }
+    mavenCentral()
+}
+
+// Some machines (including this one) cannot reach maven.neoforged.net. If a local Maven-format
+// mirror of the NeoForge artifacts is available, add it as an extra repository so that dependency
+// resolution and `createMinecraftArtifacts` work without network access.
+def neoforgeMirror = (project.findProperty('neoforge_local_mirror') ?: '').toString().trim()
+if (!neoforgeMirror.isEmpty()) {
+    def mirrorDir = file(neoforgeMirror)
+    if (mirrorDir.isDirectory()) {
+        repositories {
+            maven {
+                name = 'NeoForgeLocalMirror'
+                url = mirrorDir.toURI()
+                content { includeGroup 'net.neoforged' }
+            }
+        }
+    } else {
+        logger.warn("neoforge_local_mirror points to a missing directory, ignoring it: ${mirrorDir}")
+    }
+}
+
+dependencies {
+    // == Forestry: Community Edition (required) =================================================
+    compileOnly("${project.forestry_group}:${project.forestry_artifact}:${project.forestry_version}") {
+        transitive = false
+    }
+    runtimeOnly("${project.forestry_group}:${project.forestry_artifact}:${project.forestry_version}") {
+        transitive = false
+    }
+    (project.forestry_optional_modules as String).split(',').each { module ->
+        def moduleName = module.trim()
+        if (!moduleName.isEmpty()) {
+            runtimeOnly("${project.forestry_group}:forestry${moduleName}-${project.minecraft_version}:${project.forestry_version}") {
+                transitive = false
+            }
+        }
+    }
+    runtimeOnly "vazkii.patchouli:Patchouli:${project.patchouli_version}"
+
+    // The GameTest source set compiles against the same APIs (testCompileOnly does not inherit
+    // Main's compileOnly configuration).
+    testCompileOnly("${project.forestry_group}:${project.forestry_artifact}:${project.forestry_version}") {
+        transitive = false
+    }
+
+    // == Sable (required) ========================================================================
+    // The published jar JarJars sable-companion, the Rapier natives and Veil, so `transitive = false`
+    // is both correct and what keeps the build resolvable offline.
+    compileOnly("dev.ryanhcode.sable:sable-neoforge-${project.minecraft_version}:${project.sable_version}") {
+        transitive = false
+    }
+    runtimeOnly("dev.ryanhcode.sable:sable-neoforge-${project.minecraft_version}:${project.sable_version}") {
+        transitive = false
+    }
+    testCompileOnly("dev.ryanhcode.sable:sable-neoforge-${project.minecraft_version}:${project.sable_version}") {
+        transitive = false
+    }
+    // The Sable jar JarJars the companion library, but nested jars are not on the Java compile
+    // classpath, so the companion API is added explicitly for compilation.
+    compileOnly("dev.ryanhcode.sable-companion:sable-companion-common-${project.minecraft_version}:${project.sable_companion_version}") {
+        transitive = false
+    }
+    testCompileOnly("dev.ryanhcode.sable-companion:sable-companion-common-${project.minecraft_version}:${project.sable_companion_version}") {
+        transitive = false
+    }
+
+    // == Verification only: the generic Sable Fix Mod ============================================
+    // Not a dependency of the shipped mod; it is on the development runtime so the GameTest can be
+    // run with and without it (`-Pwith_sable_fix=false`). The jar is third-party and deliberately not
+    // redistributed: drop it into libs/ (see libs/README.md) or the run silently skips it.
+    if ((project.with_sable_fix as String).toBoolean()) {
+        def fixJar = file(project.sable_fix_mod_jar)
+        if (fixJar.isFile()) {
+            runtimeOnly files(fixJar)
+        } else {
+            logger.warn("sable_fix_mod_jar is missing (${fixJar}); running the GameTests without the generic Sable Fix Mod")
+        }
+    }
+}
+
+// `src/test` is a separate mod (`forestry_sable_compat_gametest`) as in ForestryCE: the GameTest
+// classes are not part of the released jar, and the mod metadata lives in src/test/resources.
+sourceSets.test.compileClasspath += sourceSets.main.output
+sourceSets.test.runtimeClasspath += sourceSets.main.output
+
+tasks.withType(ProcessResources).configureEach {
+    var replaceProperties = [
+            minecraft_version      : project.minecraft_version,
+            minecraft_version_range: project.minecraft_version_range,
+            neo_version            : project.neo_version,
+            neo_version_range      : project.neo_version_range,
+            loader_version_range   : project.loader_version_range,
+            forestry_version       : project.forestry_version,
+            forestry_version_range : project.forestry_version_range,
+            patchouli_version      : project.patchouli_version,
+            patchouli_version_range: project.patchouli_version_range,
+            sable_version          : project.sable_version,
+            sable_version_range    : project.sable_version_range,
+            mod_id                 : project.mod_id,
+            mod_name               : project.mod_name,
+            mod_license            : project.mod_license,
+            mod_version            : project.mod_version,
+            mod_authors            : project.mod_authors,
+            mod_description        : project.mod_description
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = project.java_version as int
+}
+
+// `src/test` is a GameTest mod, not a JUnit suite; the tests run through `runGameTestServer` and
+// Gradle's JUnit `test` task must not try to discover them.
+tasks.named('test', Test) {
+    enabled = false
+}

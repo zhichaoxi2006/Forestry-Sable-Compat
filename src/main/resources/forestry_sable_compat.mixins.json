@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.zhichaoxi.forestrysablecompat.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "AbstractBeeHousingBlockEntityMixin",
+    "AlvearyControllerMixin",
+    "ClimateProviderMixin",
+    "ForestryClimateManagerMixin",
+    "HiveBlockEntityMixin",
+    "MultiblockTileEntityForestryMixin",
+    "SubLevelAssemblyHelperMixin",
+    "TileForestryMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

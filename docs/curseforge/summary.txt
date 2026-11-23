@@ -1,0 +1,13 @@
+CURSEFORGE SUMMARY — paste one line into the "Summary" field.
+
+EN, recommended (130 chars):
+Stops Sable from duplicating or wiping Forestry inventories, circuit boards and multiblock contents, and fixes bee housing biomes.
+
+EN, shorter (80 chars):
+No more duplicated Forestry inventories or wrong bee biomes on Sable structures.
+
+ZH, recommended:
+Sable 搬动结构时不再复制或清空 Forestry 机器内容物，蜂房群系也按结构实际位置判定。
+
+ZH, shorter:
+修复 Sable 物理化 Forestry 机器时的内容物复制与丢失，并让蜂房按结构实际位置判定群系。
